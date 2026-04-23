@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EMA – Današnja poraba</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">EMA</span>
+        <span class="logo-sub">Današnja poraba</span>
+      </div>
+      <div class="header-right">
+        <nav class="top-nav">
+          <a href="/" class="top-nav-link">Analiza</a>
+          <a href="/today.html" class="top-nav-link active">Danes</a>
+          <a href="/power.html" class="top-nav-link">Moč</a>
+        </nav>
+        <div class="env-badge" id="envBadge">TEST</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="today-main">
+    <div id="todayStatusBar" class="status-bar hidden"></div>
+
+    <section class="today-hero">
+      <div class="today-hero-copy">
+        <h1>Trenutna poraba in današnji 15-minutni profil</h1>
+        <p>Pregled zadnjega prejetega intervala in današnje porabe z barvnim VT/NT prikazom.</p>
+      </div>
+      <div class="today-controls">
+        <div class="form-group">
+          <label>Merilno mesto</label>
+          <select id="todayUsagePoint">
+            <option value="">— izberi —</option>
+          </select>
+        </div>
+        <button id="refreshTodayBtn" class="btn-primary">Osveži podatke</button>
+      </div>
+    </section>
+
+    <div id="todaySummary" class="summary-cards today-summary"></div>
+
+    <section class="card chart-card">
+      <div class="card-header">
+        <h2 id="todayChartTitle">Današnja poraba na 15 minut</h2>
+        <div class="today-legend">
+          <span class="tariff-chip tariff-chip-vt">VT</span>
+          <span class="tariff-chip tariff-chip-nt">NT</span>
+        </div>
+      </div>
+      <canvas id="todayChart"></canvas>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Zadnji intervali</h2>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Začetek</th>
+              <th>Konec</th>
+              <th>Poraba (kWh)</th>
+              <th>Ocenjena moč (kW)</th>
+              <th>Tarifa</th>
+            </tr>
+          </thead>
+          <tbody id="todayTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="js/today.js"></script>
+</body>
+</html>

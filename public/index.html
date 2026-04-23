@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EMA – Elektro Merilna Aplikacija</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">EMA</span>
+        <span class="logo-sub">Elektro Merilna Aplikacija</span>
+      </div>
+      <div class="header-right">
+        <nav class="top-nav">
+          <a href="/" class="top-nav-link active">Analiza</a>
+          <a href="/today.html" class="top-nav-link">Danes</a>
+          <a href="/power.html" class="top-nav-link">Moč</a>
+        </nav>
+        <div class="env-badge" id="envBadge">TEST</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ── Sidebar ────────────────────────────────────────── -->
+    <aside class="sidebar">
+
+      <section class="card">
+        <h2>Merilna mesta</h2>
+        <div id="usagePointList" class="usage-list">
+          <p class="empty-hint">Ni shranjenih merilnih mest.</p>
+        </div>
+        <div class="usage-create">
+          <button type="button" id="toggleAddUsagePointBtn" class="usage-create-toggle" aria-expanded="false">
+            <span>Dodaj novo merilno mesto</span>
+            <span class="usage-create-icon">+</span>
+          </button>
+          <form id="addUsagePointForm" class="add-form collapsed">
+            <input type="text" id="upIdentifier" placeholder="Identifikator *" required>
+            <input type="text" id="upGsrn"       placeholder="GSRN (opcijsko)">
+            <input type="text" id="upLabel"      placeholder="Naziv (opcijsko)">
+            <button type="submit">Dodaj</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Poizvedba</h2>
+        <div class="form-group">
+          <label>Merilno mesto</label>
+          <select id="queryUsagePoint">
+            <option value="">— izberi —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Od datuma</label>
+          <input type="date" id="queryStartDate">
+        </div>
+        <div class="form-group">
+          <label>Do datuma</label>
+          <input type="date" id="queryEndDate">
+        </div>
+        <div class="form-group">
+          <label>Obdobje</label>
+          <div class="period-presets" id="periodPresets">
+            <button type="button" class="period-preset active" data-period="last7">Zadnjih 7 dni</button>
+            <button type="button" class="period-preset" data-period="last30">Zadnjih 30 dni</button>
+            <button type="button" class="period-preset" data-period="thisMonth">Ta mesec</button>
+            <button type="button" class="period-preset" data-period="prevMonth">Prejšnji mesec</button>
+            <button type="button" class="period-preset" data-period="thisYear">To leto</button>
+            <button type="button" class="period-preset" data-period="prevYear">Prejšnje leto</button>
+            <button type="button" class="period-preset period-preset-custom" data-period="custom">Poljubno obdobje</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Register (opcijsko)</label>
+          <input type="text" id="queryRegister" placeholder="npr. A+ ali A-">
+        </div>
+        <div class="form-group">
+          <label>Cena VT brez DDV (EUR/kWh)</label>
+          <input type="text" id="queryVtPrice" placeholder="npr. 0.11990">
+        </div>
+        <div class="form-group">
+          <label>Cena MT brez DDV (EUR/kWh)</label>
+          <input type="text" id="queryMtPrice" placeholder="npr. 0.09790">
+        </div>
+        <div class="form-group">
+          <div id="priceSourceNote" class="form-note">Cene bodo samodejno pridobljene s spleta glede na dobavitelja.</div>
+        </div>
+        <div class="form-group">
+          <label>Mesečno nadomestilo brez DDV (EUR)</label>
+          <input type="text" id="queryMonthlyFee" placeholder="npr. 1.99">
+        </div>
+        <div class="form-group">
+          <label>Mesečni popust brez DDV (EUR)</label>
+          <input type="text" id="queryMonthlyDiscount" placeholder="npr. -1.00">
+        </div>
+        <div class="btn-row">
+          <button id="fetchReadingsBtn" class="btn-primary">Pridobi odčitke</button>
+          <button id="fetchDailyBtn"    class="btn-secondary">Dnevni agregati</button>
+        </div>
+        <div class="btn-row">
+          <button id="fetchCostBtn" class="btn-secondary">Izračun stroška</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Podrobnosti točke</h2>
+        <div class="form-group">
+          <label>Identifikator merilnega mesta</label>
+          <input type="text" id="detailIdentifier" placeholder="Identifikator">
+          <button id="fetchMerilnoMestoBtn" class="btn-secondary mt4">Pridobi MM</button>
+        </div>
+        <div class="form-group mt8">
+          <label>GSRN merilne točke</label>
+          <input type="text" id="detailGsrn" placeholder="GSRN">
+          <button id="fetchMerilnaTockaBtn" class="btn-secondary mt4">Pridobi MT</button>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- ── Content area ───────────────────────────────────── -->
+    <div class="content">
+
+      <div id="statusBar" class="status-bar hidden"></div>
+
+      <section class="card" id="costPanel" style="display:none">
+        <div class="card-header">
+          <h2 id="costTitle">Ocena stroška</h2>
+        </div>
+        <div id="costSummary" class="cost-summary"></div>
+        <div class="table-scroll mt8">
+          <table>
+            <thead id="costBlocksHead"></thead>
+            <tbody id="costBlocksBody"></tbody>
+          </table>
+        </div>
+        <div class="table-scroll mt8">
+          <table>
+            <thead id="costBreakdownHead"></thead>
+            <tbody id="costBreakdownBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Chart panel -->
+      <section class="card chart-card" id="chartPanel" style="display:none">
+        <div class="card-header">
+          <h2 id="chartTitle">Poraba</h2>
+          <div class="chart-controls">
+            <button id="chartBar"  class="chart-type-btn active" title="Stolpčni">▮▮</button>
+            <button id="chartLine" class="chart-type-btn"        title="Linijski">╱</button>
+          </div>
+        </div>
+        <canvas id="readingsChart"></canvas>
+      </section>
+
+      <!-- Summary cards -->
+      <div id="summaryCards" class="summary-cards" style="display:none">
+        <div class="summary-card">
+          <div class="summary-label">Skupaj (kWh)</div>
+          <div class="summary-value" id="sumTotal">—</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Povprečje / dan (kWh)</div>
+          <div class="summary-value" id="sumAvg">—</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Max dan (kWh)</div>
+          <div class="summary-value" id="sumMax">—</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-label">Št. odčitkov</div>
+          <div class="summary-value" id="sumCount">—</div>
+        </div>
+      </div>
+
+      <!-- Data table -->
+      <section class="card table-card" id="tablePanel" style="display:none">
+        <div class="card-header">
+          <h2 id="tableTitle">Podatki</h2>
+          <button id="exportCsvBtn" class="btn-secondary">Izvozi CSV</button>
+        </div>
+        <div class="table-scroll">
+          <table id="dataTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Detail panel (merilno mesto / merilna tocka) -->
+      <section class="card" id="detailPanel" style="display:none">
+        <h2 id="detailTitle">Podrobnosti</h2>
+        <pre id="detailJson" class="json-view"></pre>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Chart.js from CDN (no build step needed) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

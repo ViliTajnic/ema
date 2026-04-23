@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EMA – Optimizacija Dogovorjene Moči</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">EMA</span>
+        <span class="logo-sub">Optimizacija dogovorjene moči</span>
+      </div>
+      <div class="header-right">
+        <nav class="top-nav">
+          <a href="/" class="top-nav-link">Analiza</a>
+          <a href="/today.html" class="top-nav-link">Danes</a>
+          <a href="/power.html" class="top-nav-link active">Moč</a>
+        </nav>
+        <div class="env-badge" id="envBadge">TEST</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="power-main">
+    <div id="powerStatusBar" class="status-bar hidden"></div>
+
+    <section class="power-hero">
+      <div class="power-hero-copy">
+        <h1>Analiza blokov za dogovorjeno moč</h1>
+        <p>Na podlagi zgodovinskih 15-minutnih odčitkov izračunamo vrhove po blokih in predlagamo tri scenarije nastavitve dogovorjene moči. Spremembe se izvedejo na portalu Moj Elektro.</p>
+      </div>
+      <div class="power-controls">
+        <div class="form-group">
+          <label>Merilno mesto</label>
+          <select id="powerUsagePoint">
+            <option value="">— izberi —</option>
+          </select>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Od datuma</label>
+            <input type="date" id="powerStartDate">
+          </div>
+          <div class="form-group">
+            <label>Do datuma</label>
+            <input type="date" id="powerEndDate">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Prednastavljeno obdobje</label>
+          <div class="period-presets" id="powerPeriodPresets">
+            <button type="button" class="period-preset" data-period="last30">Zadnjih 30 dni</button>
+            <button type="button" class="period-preset" data-period="last90">Zadnjih 90 dni</button>
+            <button type="button" class="period-preset" data-period="last180">Zadnjih 180 dni</button>
+            <button type="button" class="period-preset" data-period="last365">Zadnjih 365 dni</button>
+            <button type="button" class="period-preset" data-period="last730">Zadnji 2 leti</button>
+            <button type="button" class="period-preset period-preset-custom" data-period="custom">Poljubno obdobje</button>
+          </div>
+        </div>
+        <button id="refreshPowerBtn" class="btn-primary">Analiziraj bloke</button>
+      </div>
+    </section>
+
+    <div id="powerSummary" class="summary-cards power-summary"></div>
+
+    <section class="card power-note-card">
+      <div class="card-header">
+        <h2>Priporočilo</h2>
+      </div>
+      <div id="powerRecommendationNote" class="power-note-body">
+        Izberite merilno mesto in obdobje za analizo.
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Scenariji nastavitve</h2>
+      </div>
+      <div id="powerProfiles" class="profile-grid"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Presežki dogovorjene moči</h2>
+      </div>
+      <div id="powerExcessSummary" class="summary-cards power-summary"></div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Mesec</th>
+              <th>Trenutno</th>
+              <th>Uravnoteženo</th>
+              <th>Konzervativno</th>
+              <th>Agresivno</th>
+            </tr>
+          </thead>
+          <tbody id="powerExcessTableBody">
+            <tr><td colspan="5">Ni analize.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card chart-card">
+      <div class="card-header">
+        <h2 id="powerChartTitle">Primerjava po blokih</h2>
+      </div>
+      <canvas id="powerChart"></canvas>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Podrobnosti po blokih</h2>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Blok</th>
+              <th>Trenutna moč</th>
+              <th>Vrh iz meritev</th>
+              <th>P99</th>
+              <th>P95</th>
+              <th>Rezerva danes</th>
+              <th>Uravnoteženo</th>
+              <th>Konzervativno</th>
+              <th>Agresivno</th>
+            </tr>
+          </thead>
+          <tbody id="powerTableBody">
+            <tr><td colspan="9">Ni analize.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="js/power.js"></script>
+</body>
+</html>
