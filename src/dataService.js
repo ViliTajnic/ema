@@ -184,8 +184,8 @@ async function getMeterReadings({ usagePoint, startDate, endDate, registerCode }
 async function ensureReadingsAvailable({ usagePoint, startDate, endDate, registerCode }) {
   const cached = await hasFetchedWindow({ usagePoint, startDate, endDate, registerCode });
   if (cached) {
-    const hasRows = await hasStoredReadings({ usagePoint, startDate, endDate, registerCode });
-    if (hasRows) return;
+    const isComplete = await hasCompleteStoredWindow({ usagePoint, startDate, endDate, registerCode });
+    if (isComplete) return;
   }
 
   const windows = splitDateRangeIntoWindows(startDate, endDate, MAX_API_RANGE_DAYS);
@@ -199,13 +199,13 @@ async function ensureReadingsAvailable({ usagePoint, startDate, endDate, registe
     });
 
     if (windowCached) {
-      const hasRows = await hasStoredReadings({
+      const isComplete = await hasCompleteStoredWindow({
         usagePoint,
         startDate: window.startDate,
         endDate: window.endDate,
         registerCode,
       });
-      if (hasRows) continue;
+      if (isComplete) continue;
     }
 
     const apiData = await api.getMeterReadings({
@@ -215,12 +215,22 @@ async function ensureReadingsAvailable({ usagePoint, startDate, endDate, registe
       registerCode,
     });
     await persistReadings(usagePoint, apiData);
-    await recordFetchedWindow({
+
+    const isComplete = await hasCompleteStoredWindow({
       usagePoint,
       startDate: window.startDate,
       endDate: window.endDate,
       registerCode,
     });
+
+    if (isComplete) {
+      await recordFetchedWindow({
+        usagePoint,
+        startDate: window.startDate,
+        endDate: window.endDate,
+        registerCode,
+      });
+    }
   }
 }
 
@@ -276,10 +286,13 @@ async function recordFetchedWindow({ usagePoint, startDate, endDate, registerCod
   );
 }
 
-async function hasStoredReadings({ usagePoint, startDate, endDate, registerCode }) {
+async function hasCompleteStoredWindow({ usagePoint, startDate, endDate, registerCode }) {
   const dateColumn = isDailyStateRegister(registerCode) ? 'interval_end' : 'interval_start';
   const result = await db.query(
-    `SELECT COUNT(*) AS cnt
+    `SELECT COUNT(*) AS row_count,
+            COUNT(DISTINCT TRUNC(${dateColumn})) AS covered_days,
+            TO_CHAR(MIN(${dateColumn}), 'YYYY-MM-DD HH24:MI:SS') AS min_point,
+            TO_CHAR(MAX(interval_end), 'YYYY-MM-DD HH24:MI:SS') AS max_point
        FROM meter_readings
       WHERE usage_point = :usagePoint
         AND ${dateColumn} >= TO_TIMESTAMP(:startDate, 'YYYY-MM-DD')
@@ -293,7 +306,16 @@ async function hasStoredReadings({ usagePoint, startDate, endDate, registerCode 
     }
   );
 
-  return result.rows[0].CNT > 0;
+  const row = result.rows[0];
+  if (!row || row.ROW_COUNT === 0) return false;
+
+  const requiredDays = diffInDaysInclusive(parseDateOnly(startDate), parseDateOnly(endDate));
+  const expectedMinPoint = `${startDate} 00:00:00`;
+  const expectedMaxPoint = `${addDays(endDate, 1)} 00:00:00`;
+
+  return row.COVERED_DAYS >= requiredDays
+    && row.MIN_POINT <= expectedMinPoint
+    && row.MAX_POINT >= expectedMaxPoint;
 }
 
 async function persistReadings(usagePoint, apiData) {

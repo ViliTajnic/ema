@@ -190,13 +190,12 @@ Starts the server with `--watch` so it restarts automatically on file changes.
 
 ## Database schema
 
-The schema is initialised automatically by `npm run setup` and on every server start (via `ensureRuntimeSchema`). For a clean re-install, run the full schema script manually:
+The schema is initialised automatically by `npm run setup` and on every server start (via `ensureRuntimeSchema`). To bootstrap or repair the schema manually, run:
 
 ```bash
 sql ema_app/<password>@localhost:1521/emapdb @db/init.sql
 ```
-
-> **Warning:** `db/init.sql` drops and recreates all tables. Run it only on a fresh install or when you intentionally want to wipe all stored data.
+The script is idempotent and safe to re-run. It creates any missing tables and indexes without dropping existing data.
 
 ---
 
