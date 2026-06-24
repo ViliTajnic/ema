@@ -313,9 +313,36 @@ async function hasCompleteStoredWindow({ usagePoint, startDate, endDate, registe
   const expectedMinPoint = `${startDate} 00:00:00`;
   const expectedMaxPoint = `${addDays(endDate, 1)} 00:00:00`;
 
-  return row.COVERED_DAYS >= requiredDays
+  const basicComplete = row.COVERED_DAYS >= requiredDays
     && row.MIN_POINT <= expectedMinPoint
     && row.MAX_POINT >= expectedMaxPoint;
+  if (!basicComplete) return false;
+
+  // A day whose readings sum to exactly zero is a placeholder (data fetched before
+  // the distributor finalized it), not real consumption — treat such a window as
+  // incomplete so it gets refetched and the upsert can replace the zeros.
+  // (Individual zero slots, e.g. solar-export quarters, are fine — only whole-day
+  // zeros are rejected.)
+  const zeroDayResult = await db.query(
+    `SELECT COUNT(*) AS zero_days FROM (
+        SELECT TRUNC(${dateColumn}) AS day
+          FROM meter_readings
+         WHERE usage_point = :usagePoint
+           AND ${dateColumn} >= TO_TIMESTAMP(:startDate, 'YYYY-MM-DD')
+           AND interval_end   <= TO_TIMESTAMP(:endDate,   'YYYY-MM-DD') + INTERVAL '1' DAY
+           AND register_code = :registerCode
+         GROUP BY TRUNC(${dateColumn})
+        HAVING SUM(NVL(value, 0)) = 0
+     )`,
+    {
+      usagePoint:   { val: usagePoint,   type: oracledb.STRING },
+      startDate:    { val: startDate,     type: oracledb.STRING },
+      endDate:      { val: endDate,       type: oracledb.STRING },
+      registerCode: { val: registerCode,  type: oracledb.STRING },
+    }
+  );
+
+  return zeroDayResult.rows[0].ZERO_DAYS === 0;
 }
 
 async function persistReadings(usagePoint, apiData) {
@@ -340,17 +367,33 @@ async function persistReadings(usagePoint, apiData) {
   }
 
   if (rows.length) {
-    // batchErrors:true suppresses ORA-00001 duplicate-key errors per row without aborting the batch.
+    // Upsert so refetches overwrite stale values (e.g. placeholder zeros stored
+    // before the distributor finalized a day) instead of being skipped as duplicates.
     await db.executeMany(
-      `INSERT INTO meter_readings
-         (usage_point, interval_start, interval_end, register_code, value, unit, quality_code, reading_type)
-       VALUES
-         (:usagePoint,
-          TO_TIMESTAMP_TZ(:startTs, 'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM'),
-          TO_TIMESTAMP_TZ(:endTs,   'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM'),
-          :registerCode, :value, :unit, :qualityCode, :readingType)`,
-      rows,
-      { batchErrors: true }
+      `MERGE INTO meter_readings dst
+       USING (
+         SELECT
+           :usagePoint AS usage_point,
+           TO_TIMESTAMP_TZ(:startTs, 'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM') AS interval_start,
+           TO_TIMESTAMP_TZ(:endTs,   'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM') AS interval_end,
+           :registerCode AS register_code,
+           :value AS value, :unit AS unit, :qualityCode AS quality_code, :readingType AS reading_type
+         FROM dual
+       ) src
+          ON (dst.usage_point = src.usage_point
+              AND dst.interval_start = src.interval_start
+              AND dst.register_code = src.register_code)
+        WHEN MATCHED THEN
+             UPDATE SET dst.interval_end = src.interval_end,
+                        dst.value        = src.value,
+                        dst.unit         = src.unit,
+                        dst.quality_code = src.quality_code,
+                        dst.reading_type = src.reading_type
+        WHEN NOT MATCHED THEN
+             INSERT (usage_point, interval_start, interval_end, register_code, value, unit, quality_code, reading_type)
+             VALUES (src.usage_point, src.interval_start, src.interval_end, src.register_code,
+                     src.value, src.unit, src.quality_code, src.reading_type)`,
+      rows
     );
   }
 
