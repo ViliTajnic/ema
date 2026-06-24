@@ -7,6 +7,8 @@ let chartInstance = null;
 let lastTableData = [];
 let lastTableHeaders = [];
 let chartType = 'bar';
+let readingGranularity = 'hour';   // 'hour' (default) | '15min' — only switchable for ≤7 day ranges
+let lastReadingRows = null;
 let activePeriodPreset = 'last7';
 let currentPriceLookupToken = 0;
 let lastPriceLookupUsagePoint = null;
@@ -59,6 +61,11 @@ const detailJson         = document.getElementById('detailJson');
 const exportCsvBtn       = document.getElementById('exportCsvBtn');
 const chartBarBtn        = document.getElementById('chartBar');
 const chartLineBtn       = document.getElementById('chartLine');
+const granularityControls = document.getElementById('granularityControls');
+const granHourBtn        = document.getElementById('granHour');
+const gran15Btn          = document.getElementById('gran15');
+
+const GRANULARITY_TOGGLE_MAX_DAYS = 7;
 const envBadge           = document.getElementById('envBadge');
 
 // ── Init ───────────────────────────────────────────────────────
@@ -418,7 +425,12 @@ function renderReadingsTable(rows) {
 }
 
 function renderReadingsChart(rows) {
-  const series = buildAdaptiveReadingSeries(rows);
+  lastReadingRows = rows;
+  const days = countReadingDays(rows);
+  // 15-min toggle only makes sense for short ranges; hourly is the default everywhere else.
+  granularityControls.style.display = days <= GRANULARITY_TOGGLE_MAX_DAYS ? '' : 'none';
+
+  const series = buildAdaptiveReadingSeries(rows, readingGranularity);
   chartTitle.textContent = series.title;
   drawChart(series.labels, series.data, 'kWh');
 }
@@ -441,8 +453,12 @@ function renderSummary15min(rows) {
   summaryCards.style.display = '';
 }
 
-function buildAdaptiveReadingSeries(rows) {
-  const days = new Set(rows.map(r => r.INTERVAL_START?.slice(0, 10)).filter(Boolean)).size;
+function countReadingDays(rows) {
+  return new Set(rows.map(r => r.INTERVAL_START?.slice(0, 10)).filter(Boolean)).size;
+}
+
+function buildAdaptiveReadingSeries(rows, granularity) {
+  const days = countReadingDays(rows);
 
   if (days > 90) {
     return buildGroupedReadingSeries(rows, {
@@ -451,16 +467,17 @@ function buildAdaptiveReadingSeries(rows) {
     });
   }
 
-  if (days > 14) {
+  // Short ranges may opt into raw 15-minute resolution; everything else stays hourly.
+  if (days <= GRANULARITY_TOGGLE_MAX_DAYS && granularity === '15min') {
     return buildGroupedReadingSeries(rows, {
-      keyFn: row => row.INTERVAL_START?.slice(0, 13).replace('T', ' ') + ':00',
-      title: 'Urna poraba iz 15-minutnih odčitkov',
+      keyFn: row => row.INTERVAL_START?.slice(0, 16).replace('T', ' '),
+      title: '15-minutna poraba',
     });
   }
 
   return buildGroupedReadingSeries(rows, {
-    keyFn: row => row.INTERVAL_START?.slice(0, 16).replace('T', ' '),
-    title: '15-minutna poraba',
+    keyFn: row => row.INTERVAL_START?.slice(0, 13).replace('T', ' ') + ':00',
+    title: 'Urna poraba iz 15-minutnih odčitkov',
   });
 }
 
@@ -658,6 +675,16 @@ chartLineBtn.addEventListener('click', () => {
     drawChart(labels, datasets[0].data, datasets[0].label);
   }
 });
+
+function setReadingGranularity(granularity) {
+  readingGranularity = granularity;
+  granHourBtn.classList.toggle('active', granularity === 'hour');
+  gran15Btn.classList.toggle('active', granularity === '15min');
+  if (lastReadingRows) renderReadingsChart(lastReadingRows);
+}
+
+granHourBtn.addEventListener('click', () => setReadingGranularity('hour'));
+gran15Btn.addEventListener('click', () => setReadingGranularity('15min'));
 
 // ── Detail panel ───────────────────────────────────────────────
 fetchMMBtn.addEventListener('click', async () => {

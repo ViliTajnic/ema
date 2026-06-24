@@ -500,6 +500,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 /* ── Chart ────────────────────────────────────────────────── */
 .chart-card canvas { max-height: 300px; }
 .chart-controls { display: flex; gap: .4rem; }
+.chart-granularity { display: flex; gap: .4rem; margin-right: .5rem; padding-right: .5rem; border-right: 1px solid var(--clr-border); }
 .chart-type-btn {
   background: var(--clr-border);
   color: var(--clr-muted);
