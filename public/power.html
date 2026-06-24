@@ -110,6 +110,9 @@
     <section class="card chart-card">
       <div class="card-header">
         <h2 id="powerChartTitle">Primerjava po blokih</h2>
+        <div class="chart-controls">
+          <button type="button" class="chart-type-btn chart-expand-btn" data-zoom-target="powerChart" title="Povečaj" aria-label="Povečaj graf">⤢</button>
+        </div>
       </div>
       <canvas id="powerChart"></canvas>
     </section>
@@ -143,5 +146,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="js/power.js"></script>
+  <script src="js/chart-zoom.js"></script>
 </body>
 </html>

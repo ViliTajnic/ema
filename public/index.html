@@ -161,6 +161,7 @@
             </div>
             <button id="chartBar"  class="chart-type-btn active" title="Stolpčni">▮▮</button>
             <button id="chartLine" class="chart-type-btn"        title="Linijski">╱</button>
+            <button type="button" class="chart-type-btn chart-expand-btn" data-zoom-target="readingsChart" title="Povečaj" aria-label="Povečaj graf">⤢</button>
           </div>
         </div>
         <canvas id="readingsChart"></canvas>
@@ -212,5 +213,6 @@
   <!-- Chart.js from CDN (no build step needed) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/chart-zoom.js"></script>
 </body>
 </html>
